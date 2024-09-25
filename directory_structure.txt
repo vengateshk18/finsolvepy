@@ -1,0 +1,52 @@
+Folder PATH listing for volume New Volume
+Volume serial number is 3056-4778
+F:.
+¦   .env
+¦   .gitignore
+¦   directory_structure.txt
+¦   LICENSE
+¦   README.md
+¦   setup.py
+¦   
++---build
+¦   +---bdist.win-amd64
+¦   +---lib
+¦       +---finsolvepy
+¦           ¦   calculation.py
+¦           ¦   information.py
+¦           ¦   __init__.py
+¦           ¦   
+¦           +---database
+¦                   company_symbol_dict.py
+¦                   complete_data.csv
+¦                   indices_descriptions.csv
+¦                   __init__.py
+¦                   
++---dist
+¦       finsolvepy-1.2.0-py3-none-any.whl
+¦       finsolvepy-1.2.0.tar.gz
+¦       
++---finsolvepy
+¦   ¦   calculation.py
+¦   ¦   information.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---database
+¦   ¦   ¦   company_symbol_dict.py
+¦   ¦   ¦   complete_data.csv
+¦   ¦   ¦   indices_descriptions.csv
+¦   ¦   ¦   __init__.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           company_symbol_dict.cpython-311.pyc
+¦   ¦           
+¦   +---__pycache__
+¦           __init__.cpython-311.pyc
+¦           
++---finsolvepy.egg-info
+        dependency_links.txt
+        PKG-INFO
+        requires.txt
+        SOURCES.txt
+        top_level.txt
+        

@@ -1,8 +1,10 @@
+# In finsolvepy/information.py
 import pandas as pd
-from database.company_symbol_dict import company_dict
+from finsolvepy.database.company_symbol_dict import company_dict  # Update this line
 import json
 import requests
 import os
+
 from dotenv import load_dotenv
 
 # Load the .env file
@@ -43,8 +45,10 @@ class StockInsights():
         Checks if a provided index is valid by verifying its presence in the index data.
     """
     def __init__(self) -> None:
-        self.stock = pd.read_csv('database/complete_data.csv')
-        self.index=pd.read_csv('database/indices_descriptions.csv')
+        # Get the directory of the current file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.stock = pd.read_csv(os.path.join(base_dir, 'database', 'complete_data.csv'))
+        self.index = pd.read_csv(os.path.join(base_dir, 'database', 'indices_descriptions.csv'))
 
     def stock_detail(self, symbol: str) -> dict:
         """
