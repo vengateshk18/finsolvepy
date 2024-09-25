@@ -1,0 +1,57 @@
+Region,Exchange,Index,Description
+India,BSE,SENSEX,"The benchmark index of the Bombay Stock Exchange, comprising 30 well-established companies."
+India,BSE,BSE 100,Tracks the performance of the top 100 companies listed on the BSE.
+India,BSE,BSE 200,Covers the performance of 200 companies from various sectors.
+India,BSE,BSE 500,A broad market index that tracks the performance of 500 companies across sectors.
+India,BSE,BSE MidCap,Represents the performance of mid-cap companies listed on the BSE.
+India,BSE,BSE SmallCap,Tracks the performance of smaller companies listed on the BSE.
+India,BSE,BSE LargeCap,Represents the performance of large-cap companies listed on the BSE.
+India,BSE,BSE Sectoral Indices,"Indexes that track specific sectors like banking, IT, FMCG, and more on the BSE."
+India,BSE,BSE Bankex,Measures the performance of major banking stocks listed on the BSE.
+India,BSE,BSE IT,Tracks the performance of the Information Technology sector.
+India,BSE,BSE FMCG,Represents the performance of the Fast Moving Consumer Goods sector.
+India,BSE,BSE Healthcare,Tracks the performance of companies in the healthcare sector.
+India,BSE,BSE Metal,Measures the performance of the metals sector.
+India,BSE,BSE Oil & Gas,Tracks the performance of companies in the oil & gas sector.
+India,BSE,BSE Realty,Represents the performance of the real estate sector.
+India,BSE,BSE Telecom,Tracks the performance of the telecom sector.
+India,BSE,BSE Utilities,Covers companies providing utility services like electricity and water.
+India,BSE,BSE Auto,Measures the performance of the automobile sector.
+India,BSE,BSE Power,Represents the performance of the power sector.
+India,BSE,BSE Consumer Durables,Tracks companies that manufacture consumer durable goods.
+India,BSE,BSE Energy,Represents companies in the energy sector.
+India,BSE,BSE IPO,Tracks recently listed companies from their initial public offerings (IPOs).
+India,BSE,BSE Infrastructure,Measures the performance of infrastructure-related companies.
+India,BSE,BSE Industrials,Tracks the performance of the industrial sector companies.
+India,NSE,NIFTY 50,"The benchmark index of the National Stock Exchange, consisting of 50 large companies."
+India,NSE,NIFTY Next 50,Tracks the performance of 50 companies next in line after the NIFTY 50.
+India,NSE,NIFTY 100,Measures the performance of the top 100 companies listed on the NSE.
+India,NSE,NIFTY 200,Tracks the performance of 200 companies across sectors.
+India,NSE,NIFTY 500,A broad market index that covers 500 companies listed on the NSE.
+India,NSE,NIFTY MidCap 100,Represents the performance of mid-cap companies on the NSE.
+India,NSE,NIFTY SmallCap 100,Tracks the performance of small-cap companies on the NSE.
+India,NSE,NIFTY MidCap 50,Measures the performance of 50 leading mid-cap companies.
+India,NSE,NIFTY SmallCap 50,Represents 50 prominent small-cap companies.
+India,NSE,NIFTY LargeCap 100,Tracks the performance of large-cap companies listed on the NSE.
+India,NSE,NIFTY Sectoral Indices,"Indexes tracking specific sectors like banking, IT, and more on the NSE."
+India,NSE,NIFTY Bank,Measures the performance of major banking stocks listed on the NSE.
+India,NSE,NIFTY IT,Represents the performance of the Information Technology sector.
+India,NSE,NIFTY FMCG,Tracks the performance of the Fast Moving Consumer Goods sector.
+India,NSE,NIFTY Pharma,Measures the performance of pharmaceutical companies.
+India,NSE,NIFTY Auto,Tracks the performance of companies in the automobile sector.
+India,NSE,NIFTY Metal,Represents the performance of the metals sector.
+India,NSE,NIFTY Realty,Measures the performance of real estate sector companies.
+India,NSE,NIFTY Energy,Tracks the performance of the energy sector.
+India,NSE,NIFTY Infrastructure,Represents companies involved in infrastructure development.
+India,NSE,NIFTY Media,Tracks companies in the media and entertainment sector.
+India,NSE,NIFTY Commodities,Measures the performance of commodity-related companies.
+India,NSE,NIFTY Financial Services,Represents the performance of the financial services sector.
+India,NSE,NIFTY Private Bank,Tracks private sector banks listed on the NSE.
+India,NSE,NIFTY PSU Bank,Measures the performance of Public Sector Banks (PSBs) on the NSE.
+US,US Stock Market,Dow Jones Industrial Average (DJIA),"Tracks 30 large, publicly-owned companies based in the United States."
+US,US Stock Market,S&P 500,Measures the stock performance of 500 large companies listed on U.S. stock exchanges.
+US,US Stock Market,NASDAQ Composite,"Includes over 3,000 stocks listed on the NASDAQ exchange, covering tech-heavy and other sectors."
+US,US Stock Market,Russell 2000,"Tracks 2,000 small-cap companies, representing the smallest in the Russell 3000 Index."
+US,US Stock Market,Wilshire 5000,A total market index representing all publicly traded companies with headquarters in the U.S.
+US,US Stock Market,NYSE Composite,"Tracks all stocks listed on the New York Stock Exchange (NYSE), including more than 2,000 companies."
+US,US Stock Market,CBOE Volatility Index (VIX),Measures the market's expectation of volatility based on S&P 500 index options.
