@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 
 # Load the .env file
 load_dotenv()
-api=os.getenv('ALPHA_VANTAGE_API_KEY')
+market_api=os.getenv('ALPHA_VANTAGE_API_KEY')
+currency_api=os.getenv('CURRENCY_API_KEY')
 
 class StockInsights():
     """
@@ -65,7 +66,7 @@ class StockInsights():
         """
         try:
             # Check if the symbol exists in the DataFrame
-            us_response=requests.get(f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={api}")
+            us_response=requests.get(f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={market_api}")
             if symbol not in self.stock['symbol'].values and us_response.text == "{}":
                 raise ValueError(f"Information for '{symbol}' is not available or the symbol is invalid.")
             
@@ -264,7 +265,203 @@ class StockInsights():
         return "StockInsights()"
 
 
+class CurrencyConverter:
+    """
+        A class to perform real-time currency conversion and exchange rate lookups using the ExchangeRate-API.
+
+        This class provides functionality to convert currency amounts between different currencies, 
+        fetch exchange rates, and list supported currencies via RESTful API calls to the ExchangeRate-API.
+
+        Attributes
+        ----------
+        base_url : str
+            The base URL of the ExchangeRate-API endpoint.
+        api_key : str
+            The API key used for authenticating requests to the ExchangeRate-API.
+
+        Methods
+        -------
+        convert(from_currency: str, to_currency: str, amount: float) -> float:
+            Converts a specified amount from one currency to another.
+
+        exchange_rate(from_currency: str, to_currency: str) -> float:
+            Retrieves the current exchange rate between two given currencies.
+
+        supported_currencies() -> list:
+            Returns a list of supported currency codes and their full names.
+
+        exchange_rate_for_base_currency(base_currency: str) -> dict:
+            Retrieves all exchange rates from a given base currency to others.
+
+        __str__() -> str:
+            Returns a human-readable string representation of the CurrencyConverter instance.
+
+        __repr__() -> str:
+            Returns a developer-friendly representation of the CurrencyConverter instance.
+    """
 
 
+    def __init__(self):
+        """
+        Initializes the CurrencyConverter with the base API URL and API key.
+        """
+        self.base_url = "https://v6.exchangerate-api.com/v6/"
+        self.api_key = currency_api
 
+    def convert(self, from_currency: str, to_currency: str, amount: float) -> float:
+        """
+        Converts a specified amount from one currency to another.
 
+        Args:
+            from_currency (str): The source currency code (e.g., "USD").
+            to_currency (str): The target currency code (e.g., "INR").
+            amount (float): The amount to convert.
+
+        Returns:
+            float: The converted amount in the target currency.
+
+        Raises:
+            ValueError: If the input types are invalid or API response is incorrect.
+            requests.RequestException: If the API request fails.
+        """
+        try:
+            if not isinstance(from_currency, str) or not isinstance(to_currency, str):
+                raise ValueError("Currency codes must be strings.")
+            if not isinstance(amount, (int, float)):
+                raise ValueError("Amount must be a number.")
+
+            url = f"{self.base_url}{self.api_key}/pair/{from_currency}/{to_currency}/{amount}"
+            response = requests.get(url)
+            response.raise_for_status()
+
+            data = response.json()
+            if "conversion_rate" not in data:
+                raise ValueError("Invalid API response")
+
+            return data["conversion_result"]
+
+        except ValueError as e:
+            return json.dumps({'error': str(e)}, indent=2)
+        except requests.RequestException as e:
+            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
+            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
+        except Exception as e:
+            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+
+    def exchange_rate(self, from_currency: str, to_currency: str) -> float:
+        """
+        Retrieves the exchange rate between two currencies.
+
+        Args:
+            from_currency (str): The base currency code.
+            to_currency (str): The target currency code.
+
+        Returns:
+            float: The current exchange rate from base to target currency.
+
+        Raises:
+            ValueError: If the input types are invalid or API response is incorrect.
+            requests.RequestException: If the API request fails.
+        """
+        try:
+            if not isinstance(from_currency, str) or not isinstance(to_currency, str):
+                raise ValueError("Currency codes must be strings.")
+
+            url = f"{self.base_url}{self.api_key}/pair/{from_currency}/{to_currency}"
+            response = requests.get(url)
+            response.raise_for_status()
+
+            data = response.json()
+            if "conversion_rate" not in data:
+                raise ValueError("Invalid API response")
+
+            return data["conversion_rate"]
+
+        except ValueError as e:
+            return json.dumps({'error': str(e)}, indent=2)
+        except requests.RequestException as e:
+            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
+            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
+        except Exception as e:
+            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+
+    def supported_currencies(self) -> list:
+        """
+        Retrieves a list of all supported currency codes and their full names.
+
+        Returns:
+            list: A list of dictionaries mapping currency codes to full names.
+
+        Raises:
+            requests.RequestException: If the API request fails.
+        """
+        try:
+            url = f"{self.base_url}{self.api_key}/codes"
+            response = requests.get(url)
+            response.raise_for_status()
+
+            data = response.json()
+            if "supported_codes" not in data:
+                raise ValueError("Invalid API response")
+
+            return [{code[0]: code[1]} for code in data["supported_codes"]]
+
+        except requests.RequestException as e:
+            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
+            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
+        except Exception as e:
+            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+
+    def exchange_rate_for_base_currency(self, base_currency: str) -> dict:
+        """
+        Retrieves exchange rates from a base currency to all other supported currencies.
+
+        Args:
+            base_currency (str): The base currency code (e.g., "USD").
+
+        Returns:
+            dict: A dictionary of currency codes mapped to exchange rates.
+
+        Raises:
+            ValueError: If the base currency is not a string or API response is invalid.
+            requests.RequestException: If the API request fails.
+        """
+        try:
+            if not isinstance(base_currency, str):
+                raise ValueError("Base currency must be a string.")
+
+            url = f"{self.base_url}{self.api_key}/latest/{base_currency}"
+            response = requests.get(url)
+            response.raise_for_status()
+
+            data = response.json()
+            if "conversion_rates" not in data:
+                raise ValueError("Invalid API response")
+
+            return data["conversion_rates"]
+
+        except ValueError as e:
+            return json.dumps({'error': str(e)}, indent=2)
+        except requests.RequestException as e:
+            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
+            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
+        except Exception as e:
+            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+
+    def __str__(self):
+        """
+        Returns a human-readable string representation of the CurrencyConverter class.
+
+        Returns:
+            str: Description of the class.
+        """
+        return "CurrencyConverter Class for Currency Exchange"
+
+    def __repr__(self):
+        """
+        Returns an unambiguous string representation of the CurrencyConverter object.
+
+        Returns:
+            str: Developer-friendly representation.
+        """
+        return "CurrencyConverter()"

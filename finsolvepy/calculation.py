@@ -6,25 +6,25 @@ class Metrics():
 
     This class provides static methods to calculate various financial metrics, including:
 
-    1. **Years to Double Money**: Estimates the number of years required to double an investment based on the annual interest rate using the Rule of 72.
-    
-    2. **Years to Triple Money**: Estimates the number of years required to triple an investment based on the annual interest rate using the Rule of 114.
-    
-    3. **Earnings Per Share (EPS)**: Calculates the earnings available to each share of common stock.
-    
-    4. **Price to Earnings (P/E) Ratio**: Evaluates the company's current share price relative to its per-share earnings.
-    
-    5. **Return on Equity (ROE)**: Measures the profitability of a company in relation to shareholders' equity.
-    
-    6. **Return on Capital Employed (ROCE)**: Assesses a company's efficiency in generating profits from its capital.
-    
-    7. **Debt to Equity Ratio**: Indicates the proportion of equity and debt used to finance the company's assets.
-    
-    8. **Dividend Yield Percentage**: Calculates the annual dividend payment expressed as a percentage of the stock's current price.
-    
-    9. **Dividend Yield**: Determines the actual dividend amount paid based on the yield percentage.
-    
-    10. **Price to Book Ratio (P/B)**: Compares a company's market value to its book value, indicating how much investors are willing to pay for each dollar of net assets.
+    1. Years to Double Money: Estimates the number of years required to double an investment based on the annual interest rate using the Rule of 72.
+
+    2. Years to Triple Money: Estimates the number of years required to triple an investment based on the annual interest rate using the Rule of 114.
+
+    3. Earnings Per Share (EPS): Calculates the earnings available to each share of common stock.
+
+    4. Price to Earnings (P/E) Ratio: Evaluates the company's current share price relative to its per-share earnings.
+
+    5. Return on Equity (ROE): Measures the profitability of a company in relation to shareholders' equity.
+
+    6. Return on Capital Employed (ROCE): Assesses a company's efficiency in generating profits from its capital.
+
+    7. Debt to Equity Ratio: Indicates the proportion of equity and debt used to finance the company's assets.
+
+    8. Dividend Yield Percentage: Calculates the annual dividend payment expressed as a percentage of the stock's current price.
+
+    9. Dividend Yield: Determines the actual dividend amount paid based on the yield percentage.
+
+    10. Price to Book Ratio (P/B): Compares a company's market value to its book value, indicating how much investors are willing to pay for each dollar of net assets.
 
     Each method includes input validation and error handling to ensure that inputs are of the correct type and within acceptable ranges.
     """
