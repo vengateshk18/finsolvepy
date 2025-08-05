@@ -263,7 +263,279 @@ class StockInsights():
 
     def __repr__(self):
         return "StockInsights()"
+    
 
+class CryptocurrencyInsights:
+    """
+    A class to provide insights and detailed information about cryptocurrencies in the market.
+
+    This class allows users to fetch detailed cryptocurrency information, validate coin symbols and names,
+    and retrieve current pricing data from various crypto market sources. It utilizes crypto market data
+    to gather relevant cryptocurrency information and provides comprehensive market analysis capabilities.
+    All operations return structured data dictionaries and handle errors gracefully without raising exceptions.
+
+    Attributes:
+    -----------
+    base_url : str
+        The base URL endpoint for accessing crypto market data services.
+
+    Methods:
+    --------
+    coin_details(coin_name: str = None, coin_symbol: str = None) -> dict:
+        Fetches detailed information for a specified cryptocurrency, including current price, market cap,
+        trading volume, and comprehensive market metrics.
+
+    is_valid_symbol(coin_symbol: str) -> dict:
+        Checks if a provided cryptocurrency symbol is valid by verifying its presence in crypto market data.
+
+    is_valid_name(coin_name: str) -> dict:
+        Checks if a provided cryptocurrency name is valid by verifying its presence in crypto market data.
+
+    get_current_price(coin_name: str = None, coin_symbol: str = None) -> dict:
+        Retrieves the current price of a cryptocurrency in USD from crypto market data sources.
+    """
+
+    def __init__(self):
+        """
+        Initialize the CryptocurrencyInsights class.
+        
+        Sets up the base URL for accessing crypto market data and prepares
+        the instance for making market data requests.
+        """
+        self.base_url = "https://api.coingecko.com/api/v3"
+
+    def coin_details(self, coin_name: str = None, coin_symbol: str = None) -> dict:
+        """
+        Fetch comprehensive cryptocurrency information from crypto market data.
+
+        Retrieves detailed information about a specific cryptocurrency including
+        current price, market capitalization, trading volume, and other relevant
+        market metrics. Either coin name or symbol must be provided.
+
+        Args:
+            coin_name (str, optional): Full name of the cryptocurrency.
+                Example: "Bitcoin", "Ethereum". Defaults to None.
+            coin_symbol (str, optional): Ticker symbol of the cryptocurrency.
+                Example: "BTC", "ETH". Defaults to None.
+
+        Returns:
+            dict: A dictionary containing cryptocurrency details with the following keys:
+                - success (bool): Whether the operation was successful
+                - message (str): Status message or error description
+                - data (dict, optional): Cryptocurrency information including:
+                    - name (str): Full name of the cryptocurrency
+                    - symbol (str): Ticker symbol
+                    - description (str): Detailed description
+                    - current_price_usd (float): Current price in USD
+                    - market_cap (float): Market capitalization in USD
+                    - volume (float): 24-hour trading volume in USD
+                    - market_cap_rank (int): Market cap ranking
+                    - fully_diluted_valuation (float): Fully diluted valuation
+                    - last_updated (str): Last update timestamp
+
+        Note:
+            If both coin_name and coin_symbol are provided, coin_name takes precedence.
+            All monetary values are returned in USD.
+        """
+        if not coin_name and not coin_symbol:
+            return {
+                "message": "You must provide either 'coin_name' or 'coin_symbol'."
+            }
+
+        try:
+            # Step 1: Get coin list from crypto market data
+            response = requests.get(f"{self.base_url}/coins/list")
+            response.raise_for_status()
+            coins = response.json()
+
+            # Step 2: Find matching coin_id
+            coin_id = None
+            for coin in coins:
+                if coin_name and coin['name'].lower() == coin_name.lower():
+                    coin_id = coin['id']
+                    break
+                if coin_symbol and coin['symbol'].lower() == coin_symbol.lower():
+                    coin_id = coin['id']
+                    break
+
+            if not coin_id:
+                return {
+                    "message": "No coin found matching the provided name or symbol."
+                }
+
+            # Step 3: Fetch coin details from crypto market data
+            coin_detail_url = f"{self.base_url}/coins/{coin_id}"
+            detail_response = requests.get(coin_detail_url)
+            detail_response.raise_for_status()
+            data = detail_response.json()
+
+            # Step 4: Filter required fields
+            filtered_data = {
+                "name": data.get("name"),
+                "symbol": data.get("symbol"),
+                "description": data.get("description", {}).get("en", "").strip(),
+                "current_price_usd": data.get("market_data", {}).get("current_price", {}).get("usd"),
+                "market_cap": data.get("market_data", {}).get("market_cap", {}).get("usd"),
+                "volume": data.get("market_data", {}).get("total_volume", {}).get("usd"),
+                "market_cap_rank": data.get("market_cap_rank"),
+                "fully_diluted_valuation": data.get("market_data", {}).get("fully_diluted_valuation", {}).get("usd"),
+                "last_updated": data.get("last_updated")
+            }
+
+            return {
+                "data": filtered_data
+            }
+
+        except requests.RequestException as e:
+            return {
+                "message": f"Error while processing the request: {str(e)}"
+            }
+        
+    def is_valid_symbol(self, coin_symbol: str) -> dict:
+        """
+        Validate if a cryptocurrency symbol exists in crypto market data.
+
+        Checks whether the provided cryptocurrency ticker symbol is valid
+        and available in the crypto market data sources.
+
+        Args:
+            coin_symbol (str): The ticker symbol of the cryptocurrency to validate.
+                Example: "BTC", "ETH", "ADA".
+
+        Returns:
+            dict: A dictionary containing validation results with the following keys:
+                - success (bool): Whether the validation was successful
+                - message (str): Status message or error description
+                - is_valid (bool, optional): True if symbol is valid, False otherwise
+
+        Example:
+            >>> crypto = CryptocurrencyInsights()
+            >>> result = crypto.is_valid_symbol("BTC")
+            >>> print(result["is_valid"])  # True
+        """
+        try:
+            response = requests.get(f"{self.base_url}/coins/markets", params={"vs_currency": "usd", "symbols": coin_symbol})
+            response.raise_for_status()
+            data = response.json()
+            
+            is_valid = len(data) > 0
+            return {
+                "is_valid": is_valid
+            }
+            
+        except requests.RequestException as e:
+            return {
+                "message": f"Failed to validate coin symbol: {str(e)}"
+            }
+    
+    def is_valid_name(self, coin_name: str) -> dict:
+        """
+        Validate if a cryptocurrency name exists in crypto market data.
+
+        Checks whether the provided cryptocurrency name is valid and available
+        in the crypto market data sources.
+
+        Args:
+            coin_name (str): The full name of the cryptocurrency to validate.
+                Example: "Bitcoin", "Ethereum", "Cardano".
+
+        Returns:
+            dict: A dictionary containing validation results with the following keys:
+                - success (bool): Whether the validation was successful
+                - message (str): Status message or error description
+                - is_valid (bool, optional): True if name is valid, False otherwise
+
+        Example:
+            >>> crypto = CryptocurrencyInsights()
+            >>> result = crypto.is_valid_name("Bitcoin")
+            >>> print(result["is_valid"])  # True
+        """
+        try:
+            response = requests.get(f"{self.base_url}/coins/markets", params={"vs_currency": "usd", "ids": coin_name.lower()})
+            response.raise_for_status()
+            data = response.json()
+            
+            is_valid = len(data) > 0
+            return {
+                "is_valid": is_valid
+            }
+            
+        except requests.RequestException as e:
+            return {
+                "message": f"Failed to validate coin name: {str(e)}"
+            }
+        
+    def get_current_price(self, coin_name: str = None, coin_symbol: str = None) -> dict:
+        """
+        Retrieve the current price of a cryptocurrency in USD.
+
+        Fetches the real-time price of a cryptocurrency from crypto market data
+        using either the coin name or symbol. The price is returned in USD.
+
+        Args:
+            coin_name (str, optional): Full name of the cryptocurrency.
+                Example: "Bitcoin", "Ethereum". Defaults to None.
+            coin_symbol (str, optional): Ticker symbol of the cryptocurrency.
+                Example: "BTC", "ETH". Defaults to None.
+
+        Returns:
+            dict: A dictionary containing price information with the following keys:
+                - success (bool): Whether the operation was successful
+                - message (str): Status message or error description
+                - current_price_usd (float, optional): Current price in USD
+
+        Note:
+            Either coin_name or coin_symbol must be provided. If both are provided,
+            coin_name takes precedence.
+
+        Example:
+            >>> crypto = CryptocurrencyInsights()
+            >>> result = crypto.get_current_price(coin_symbol="BTC")
+            >>> if result["success"]:
+            ...     print(f"Bitcoin price: ${result['current_price_usd']:.2f}")
+        """
+        if not coin_name and not coin_symbol:
+            return {
+                "message": "You must provide either 'coin_name' or 'coin_symbol'."
+            }
+
+        try:
+            details = self.coin_details(coin_name, coin_symbol)
+            
+            if not details["success"]:
+                return {
+                    "message": details["message"]
+                }
+            
+            current_price = details["data"].get("current_price_usd", 0.0)
+            
+            return {
+                "current_price_usd": current_price
+            }
+
+        except Exception as e:
+            return {
+                "message": f"Error while fetching current price: {str(e)}"
+            }
+
+    def __str__(self) -> str:
+        """
+        Return a string representation of the CryptocurrencyInsights instance.
+
+        Returns:
+            str: A descriptive string about the class functionality.
+        """
+        return "Cryptocurrency Insights Class for Market Analysis"
+    
+    def __repr__(self) -> str:
+        """
+        Return a detailed string representation for debugging purposes.
+
+        Returns:
+            str: A string that can be used to recreate the object.
+        """
+        return "CryptocurrencyInsights()"
+    
 
 class CurrencyConverter:
     """
@@ -465,3 +737,5 @@ class CurrencyConverter:
             str: Developer-friendly representation.
         """
         return "CurrencyConverter()"
+
+
