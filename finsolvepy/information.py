@@ -1,51 +1,47 @@
 # In finsolvepy/information.py
 import pandas as pd
 from finsolvepy.database.company_symbol_dict import company_dict  # Update this line
+from finsolvepy.database.apis import DATA_APIS
 import json
 import requests
 import os
-
+from pathlib import Path
 from dotenv import load_dotenv
 
-# Load the .env file
-load_dotenv()
-market_api=os.getenv('ALPHA_VANTAGE_API_KEY')
-currency_api=os.getenv('CURRENCY_API_KEY')
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
-class StockInsights():
+market_api = DATA_APIS['ALPHA_VANTAGE_API_KEY']
+currency_api = DATA_APIS['CURRENCY_API_KEY']
+
+
+class StockInsights:
     """
-    A class to provide insights and detailed information about stocks and indices in the market.
+    A class to provide comprehensive insights and detailed information about stocks and market indices.
 
-    This class allows users to fetch detailed stock information, validate stock symbols and indices,
-    and retrieve descriptions for various market indices. It utilizes data from CSV files and an external 
-    API to gather relevant stock and index information.
+    This class enables users to fetch detailed stock information, validate stock symbols and indices,
+    and retrieve descriptions for various market indices. It utilizes local data sources and external 
+    market data providers to gather comprehensive financial information.
 
     Attributes:
-    -----------
-    stock : pandas.DataFrame
-        A DataFrame containing stock information loaded from 'database/complete_data.csv'.
-    index : pandas.DataFrame
-        A DataFrame containing index descriptions loaded from 'database/indices_descriptions.csv'.
+        stock (pandas.DataFrame): DataFrame containing stock information loaded from local database.
+        index (pandas.DataFrame): DataFrame containing index descriptions from local database.
 
     Methods:
-    --------
-    stock_detail(symbol: str) -> dict:
-        Fetches detailed information for a specified stock symbol, including market cap, company name,
-        and financial metrics.
-
-    index_lists() -> dict:
-        Returns a list of all indices present in the Indian and US markets.
-
-    index_description(index: str) -> dict:
-        Retrieves a description of a specified market index.
-
-    is_valid_symbol(symbol: str) -> bool:
-        Checks if a provided stock symbol is valid by verifying its presence in market data.
-
-    is_valid_index(index: str) -> bool:
-        Checks if a provided index is valid by verifying its presence in the index data.
+        stock_detail(symbol): Fetches detailed information for a specified stock symbol.
+        index_lists(): Returns a list of all available market indices.
+        index_description(index): Retrieves description of a specified market index.
+        is_valid_symbol(symbol): Validates if a stock symbol exists in market data.
+        is_valid_index(index): Validates if an index exists in the database.
     """
+
     def __init__(self) -> None:
+        """
+        Initialize the StockInsights class.
+        
+        Loads stock and index data from local CSV files in the database directory.
+        Sets up the necessary data structures for market analysis operations.
+        """
         # Get the directory of the current file
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.stock = pd.read_csv(os.path.join(base_dir, 'database', 'complete_data.csv'))
@@ -53,302 +49,324 @@ class StockInsights():
 
     def stock_detail(self, symbol: str) -> dict:
         """
-        Fetches detailed stock information for a given stock symbol.
+        Retrieve comprehensive stock information for a given stock symbol.
+        
+        Fetches detailed financial information including market cap, current price,
+        financial ratios, and company description for the specified stock symbol.
         
         Args:
             symbol (str): The stock symbol for which details are to be retrieved.
         
         Returns:
-            dict: A dictionary containing stock information if found, or an error message if not.
+            dict: A dictionary containing stock information with the following structure:
+                {
+                    "symbol": str,
+                    "company": str,
+                    "market_cap": str,
+                    "about": str,
+                    "curr_market_price": str,
+                    "pe_ratio": float (Indian stocks only),
+                    "book_value": str,
+                    "divident": str,
+                    "roce": float,
+                    "roe": str,
+                    "face_value": str
+                }
+                If error occurs: {"error": str}
         
-        Raises:
-            ValueError: If the stock symbol does not exist in the market.
+        Example:
+            >>> insights = StockInsights()
+            >>> result = insights.stock_detail("AAPL")
+            >>> print(result["company"])  # Apple Inc.
         """
         try:
-            # Check if the symbol exists in the DataFrame
-            us_response=requests.get(f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={market_api}")
-            if symbol not in self.stock['symbol'].values and us_response.text == "{}":
-                raise ValueError(f"Information for '{symbol}' is not available or the symbol is invalid.")
+            # Check local database first
+            if symbol in self.stock['symbol'].values:
+                stock = self.stock.loc[self.stock['symbol'] == symbol]
+                
+                if stock.empty:
+                    return {"error": f"No information available for the stock symbol '{symbol}'."}
+
+                stock_info = {
+                    'symbol': stock['symbol'].values[0],
+                    'company': stock['name'].values[0],
+                    'market_cap': str(int(stock['market_cap'].values[0])) + " crores" if not pd.isna(stock['market_cap'].values[0]) else "N/A",
+                    'about': stock['about'].values[0] if not pd.isna(stock['about'].values[0]) else "No information available",
+                    'curr_market_price': stock['curr_market_price'].values[0] if not pd.isna(stock['curr_market_price'].values[0]) else "N/A",
+                    'pe_ratio': stock['pe_ratio'].values[0] if not pd.isna(stock['pe_ratio'].values[0]) else "N/A",
+                    'book_value': stock['book_value'].values[0] if not pd.isna(stock['book_value'].values[0]) else "N/A",
+                    'divident': stock['divident'].values[0] if not pd.isna(stock['divident'].values[0]) else "N/A",
+                    'roce': stock['roce'].values[0] if not pd.isna(stock['roce'].values[0]) else "N/A",
+                    'roe': stock['roe'].values[0] if not pd.isna(stock['roe'].values[0]) else "N/A",
+                    'face_value': stock['face_value'].values[0] if not pd.isna(stock['face_value'].values[0]) else "N/A",
+                }
+                return json.loads(json.dumps(stock_info, indent=4))
             
-            if symbol not in self.stock['symbol'].values and us_response.text != "{}":
-                stock=us_response.json()
-                data={
-                    'symbol':stock['Symbol'],
-                    'company': stock['Name'],
-                    'market_cap':str(stock['MarketCapitalization'])+" USD",
-                    'about':stock['Description'],
-                    'curr_market_price': "$"+str(float(stock['PERatio']) * float(stock['EPS'])),
-                    'book_value':stock['PriceToBookRatio'],
-                    'divident':stock['DividendYield'],
-                    'roce':( float(stock['EBITDA']) / float(stock['MarketCapitalization'])) * 100,
-                    'roe':stock['ReturnOnEquityTTM'],
+            # Check external data source if not found locally
+            try:
+                us_response = requests.get(f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={market_api}")
+                
+                if us_response.text == "{}":
+                    return {"error": f"Information for '{symbol}' is not available or the symbol is invalid."}
+                
+                stock = us_response.json()
+                
+                # Calculate current market price and ROCE safely
+                try:
+                    current_price = float(stock.get('PERatio', 0)) * float(stock.get('EPS', 0))
+                    current_price_str = f"${current_price:.2f}" if current_price > 0 else "N/A"
+                except (ValueError, TypeError):
+                    current_price_str = "N/A"
+                
+                try:
+                    ebitda = float(stock.get('EBITDA', 0))
+                    market_cap = float(stock.get('MarketCapitalization', 0))
+                    roce = (ebitda / market_cap) * 100 if market_cap > 0 else 0
+                except (ValueError, TypeError):
+                    roce = "N/A"
+                
+                data = {
+                    'symbol': stock.get('Symbol', 'N/A'),
+                    'company': stock.get('Name', 'N/A'),
+                    'market_cap': str(stock.get('MarketCapitalization', 'N/A')) + " USD",
+                    'about': stock.get('Description', 'No information available'),
+                    'curr_market_price': current_price_str,
+                    'book_value': stock.get('PriceToBookRatio', 'N/A'),
+                    'divident': stock.get('DividendYield', 'N/A'),
+                    'roce': roce,
+                    'roe': stock.get('ReturnOnEquityTTM', 'N/A'),
                     'face_value': None
                 }
-                return json.dumps(data, indent=2)
-            
-            # Fetch the row where 'symbol' matches the input
-            stock = self.stock.loc[self.stock['symbol'] == symbol]
-            
-            # If the stock symbol exists but the DataFrame is empty (just in case)
-            if stock.empty:
-                raise ValueError(f"No information available for the stock symbol '{symbol}'.")
+                return data
+                
+            except requests.RequestException:
+                return {"error": f"Unable to fetch data for symbol '{symbol}'. Please check the symbol and try again."}
+            except Exception:
+                return {"error": f"An unexpected error occurred while processing '{symbol}'."}
 
-            # Extract values and handle potential missing data in each column
-            stock_info = {
-                'symbol': stock['symbol'].values[0],
-                'company': stock['name'].values[0],
-                'market_cap': str(int(stock['market_cap'].values[0])) + " crores" if not pd.isna(stock['market_cap'].values[0]) else "N/A",
-                'about': stock['about'].values[0] if not pd.isna(stock['about'].values[0]) else "No information available",
-                'curr_market_price': stock['curr_market_price'].values[0] if not pd.isna(stock['curr_market_price'].values[0]) else "N/A",
-                'pe_ratio': stock['pe_ratio'].values[0] if not pd.isna(stock['pe_ratio'].values[0]) else "N/A",
-                'book_value': stock['book_value'].values[0] if not pd.isna(stock['book_value'].values[0]) else "N/A",
-                'divident': stock['divident'].values[0] if not pd.isna(stock['divident'].values[0]) else "N/A",
-                'roce': stock['roce'].values[0] if not pd.isna(stock['roce'].values[0]) else "N/A",
-                'roe': stock['roe'].values[0] if not pd.isna(stock['roe'].values[0]) else "N/A",
-                'face_value': stock['face_value'].values[0] if not pd.isna(stock['face_value'].values[0]) else "N/A",
-            }
-
-            # Convert the dictionary to a JSON formatted string
-            return json.dumps(stock_info, indent=4)
-
-        except ValueError as ve:
-            return {"error": str(ve)}
-        
-        except Exception as e:
-            return {"error": f"An unexpected error occurred: {str(e)}"}
-
-
+        except Exception:
+            return {"error": f"An unexpected error occurred while processing '{symbol}'."}
 
     def index_lists(self) -> dict:
         """
-        Returns all index's present in Indian and US market.
+        Retrieve a list of all available market indices.
+
+        Returns all market indices available in the database, including both
+        Indian and international market indices.
+
+        Args:
+            None
 
         Returns:
-            dict: A dictionary containing the 'Index' data as a list or an error message.
+            dict: A dictionary containing the indices list with the following structure:
+                {"Index": list} - List of all available index names
+                If error occurs: {"error": str}
 
-        Raises:
-            KeyError: If the 'Index' column is not found in the DataFrame.
-            ValueError: If the index data cannot be serialized to JSON.
+        Example:
+            >>> insights = StockInsights()
+            >>> result = insights.index_lists()
+            >>> print(len(result["Index"]))  # Number of available indices
         """
         try:
-            # Check if 'Index' exists in the DataFrame
             if 'Index' not in self.index.columns:
-                raise KeyError("'Index' column not found in the DataFrame.")
+                return {"error": "'Index' column not found in the database."}
 
-            index = self.index['Index'].values.tolist()  
-            return json.dumps({'Index': index}, indent=2)
-        
-        except KeyError as e:
-            return json.dumps({'error': str(e)}, indent=2)
-        except ValueError as e:
-            return json.dumps({'error': f'Error serializing to JSON: {str(e)}'}, indent=2)
-        except Exception as e:
-            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+            index_list = self.index['Index'].values.tolist()
+            return {"Index": index_list}
+
+        except Exception:
+            return {"error": "An unexpected error occurred while retrieving index list."}
 
     def index_description(self, index: str) -> dict:
         """
-        Retrieve the description of a given index from the stock market.
+        Retrieve detailed description of a specified market index.
+
+        Provides comprehensive information about a market index including its
+        description, region, and exchange details.
 
         Args:
-            index (str): The index for which to retrieve information.
+            index (str): The name of the index for which to retrieve information.
 
         Returns:
-            dict: A dictionary containing the index details or an error message.
+            dict: A dictionary containing index details with the following structure:
+                {
+                    "Index": str,
+                    "Region": str,
+                    "Description": str
+                }
+                If error occurs: {"error": str}
 
-        Raises:
-            ValueError: If the provided index is not a string.
-            KeyError: If the necessary columns are not found in the index DataFrame.
+        Example:
+            >>> insights = StockInsights()
+            >>> result = insights.index_description("S&P 500")
+            >>> print(result["Description"])  # Index description
         """
         try:
-            # Check if the index is a string
             if not isinstance(index, str):
-                raise ValueError("The argument should be a string.")
-            
-            # Check if the index exists in the DataFrame
+                return {"error": "The index parameter must be a string."}
+
             if index not in self.index['Index'].values:
                 return {"error": f"Information for '{index}' is not available or the index is invalid."}
-            
-            # Retrieve information for the valid index
+
             info = self.index[self.index['Index'] == index]
 
-            # Prepare the data to return
             data = {
                 "Index": info['Index'].values[0],
                 "Region": info['Exchange'].values[0],
                 "Description": info['Description'].values[0]
             }
-            return json.dumps(data, indent=2)
+            return data
 
-        except KeyError as e:
-            return {"error": f"Column not found: {str(e)}"}
-        except Exception as e:
-            return {"error": f"An unexpected error occurred: {str(e)}"}
+        except Exception:
+            return {"error": f"An unexpected error occurred while processing '{index}'."}
 
-
-    def is_valid_symbol(self, symbol: str) -> bool:
+    def is_valid_symbol(self, symbol: str) -> dict:
         """
-        Check if the provided stock symbol is valid by verifying its presence
-        in the Indian and US market data.
+        Validate if a stock symbol exists in available market data.
+
+        Checks both local database and external market data sources to determine
+        if the provided stock symbol is valid and tradeable.
 
         Args:
             symbol (str): The stock symbol to validate.
 
         Returns:
-            bool: True if the symbol is valid (exists in the stock market data), False otherwise.
+            dict: A dictionary containing validation result with the following structure:
+                {"is_valid": bool} - True if symbol exists, False otherwise
+                If error occurs: {"error": str}
 
-        Raises:
-            ValueError: If the provided symbol is not a string.
-            requests.RequestException: If the API request fails.
+        Example:
+            >>> insights = StockInsights()
+            >>> result = insights.is_valid_symbol("AAPL")
+            >>> print(result["is_valid"])  # True or False
         """
         try:
-            # Check if the symbol is a string
             if not isinstance(symbol, str):
-                raise ValueError("The provided symbol must be a string.")
+                return {"error": "The provided symbol must be a string."}
 
-            # Check if the symbol exists in the DataFrame
+            # Check local database first
             if symbol in self.stock['symbol'].values:
-                return True
+                return {"is_valid": True}
 
-            # Query the external API for symbol validation
-            response = requests.get(f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={api}')
-            response.raise_for_status()  # Raise an error for HTTP requests that return an unsuccessful status code
+            # Check external data source
+            try:
+                response = requests.get(f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={market_api}')
+                return {"is_valid": response.text != "{}"}
+            except requests.RequestException:
+                return {"is_valid": False}
 
-            # Check if the response contains valid data
-            if response.text != "{}":
-                return True
-            
-            return False
+        except Exception:
+            return {"error": f"An unexpected error occurred while validating '{symbol}'."}
 
-        except ValueError as e:
-            return json.dumps({'error': str(e)}, indent=2)
-        except requests.RequestException as e:
-            return json.dumps({'error': f'API request failed: {str(e)}'}, indent=2)
-        except Exception as e:
-            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
-        
-    def is_valid_index(self, index: str) -> bool:
+    def is_valid_index(self, index: str) -> dict:
         """
-        Check if the provided index is valid by verifying its presence in the market data.
+        Validate if an index exists in the available market data.
+
+        Checks the local database to determine if the provided index name
+        is valid and available for analysis.
 
         Args:
-            index (str): The index to validate.
+            index (str): The index name to validate.
 
         Returns:
-            bool: True if the index is valid (exists in the index DataFrame), False otherwise.
+            dict: A dictionary containing validation result with the following structure:
+                {"is_valid": bool} - True if index exists, False otherwise
+                If error occurs: {"error": str}
 
-        Raises:
-            ValueError: If the provided index is not a string.
-            KeyError: If the 'Index' column is not found in the index DataFrame.
+        Example:
+            >>> insights = StockInsights()
+            >>> result = insights.is_valid_index("NIFTY 50")
+            >>> print(result["is_valid"])  # True or False
         """
         try:
-            # Check if the index is a string
             if not isinstance(index, str):
-                raise ValueError("The provided index must be a string.")
+                return {"error": "The provided index must be a string."}
 
-            # Check if 'Index' exists in the DataFrame
             if 'Index' not in self.index.columns:
-                raise KeyError("'Index' column not found in the index DataFrame.")
+                return {"error": "'Index' column not found in the database."}
 
-            return index in self.index['Index'].values
+            return {"is_valid": index in self.index['Index'].values}
 
-        except ValueError as e:
-            return json.dumps({'error': str(e)}, indent=2)
-        except KeyError as e:
-            return json.dumps({'error': str(e)}, indent=2)
-        except Exception as e:
-            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
-    
+        except Exception:
+            return {"error": f"An unexpected error occurred while validating '{index}'."}
+
     def __str__(self):
         return "StockInsights Class for Market Analysis"
 
     def __repr__(self):
         return "StockInsights()"
-    
+
 
 class CryptocurrencyInsights:
     """
-    A class to provide insights and detailed information about cryptocurrencies in the market.
+    A class to provide comprehensive insights and detailed information about cryptocurrencies.
 
-    This class allows users to fetch detailed cryptocurrency information, validate coin symbols and names,
-    and retrieve current pricing data from various crypto market sources. It utilizes crypto market data
-    to gather relevant cryptocurrency information and provides comprehensive market analysis capabilities.
-    All operations return structured data dictionaries and handle errors gracefully without raising exceptions.
+    This class enables users to fetch detailed cryptocurrency information, validate coin symbols and names,
+    and retrieve current pricing data from cryptocurrency markets. It provides comprehensive market analysis
+    capabilities with structured data handling and robust error management.
 
     Attributes:
-    -----------
-    base_url : str
-        The base URL endpoint for accessing crypto market data services.
+        base_url (str): The base URL endpoint for accessing cryptocurrency market data.
 
     Methods:
-    --------
-    coin_details(coin_name: str = None, coin_symbol: str = None) -> dict:
-        Fetches detailed information for a specified cryptocurrency, including current price, market cap,
-        trading volume, and comprehensive market metrics.
-
-    is_valid_symbol(coin_symbol: str) -> dict:
-        Checks if a provided cryptocurrency symbol is valid by verifying its presence in crypto market data.
-
-    is_valid_name(coin_name: str) -> dict:
-        Checks if a provided cryptocurrency name is valid by verifying its presence in crypto market data.
-
-    get_current_price(coin_name: str = None, coin_symbol: str = None) -> dict:
-        Retrieves the current price of a cryptocurrency in USD from crypto market data sources.
+        coin_details(coin_name, coin_symbol): Fetches detailed cryptocurrency information.
+        is_valid_symbol(coin_symbol): Validates if a cryptocurrency symbol exists.
+        is_valid_name(coin_name): Validates if a cryptocurrency name exists.
+        get_current_price(coin_name, coin_symbol): Retrieves current cryptocurrency price.
     """
 
     def __init__(self):
         """
         Initialize the CryptocurrencyInsights class.
         
-        Sets up the base URL for accessing crypto market data and prepares
+        Sets up the base URL for accessing cryptocurrency market data and prepares
         the instance for making market data requests.
         """
         self.base_url = "https://api.coingecko.com/api/v3"
 
     def coin_details(self, coin_name: str = None, coin_symbol: str = None) -> dict:
         """
-        Fetch comprehensive cryptocurrency information from crypto market data.
+        Retrieve comprehensive cryptocurrency information from market data.
 
-        Retrieves detailed information about a specific cryptocurrency including
+        Fetches detailed information about a specific cryptocurrency including
         current price, market capitalization, trading volume, and other relevant
         market metrics. Either coin name or symbol must be provided.
 
         Args:
-            coin_name (str, optional): Full name of the cryptocurrency.
-                Example: "Bitcoin", "Ethereum". Defaults to None.
-            coin_symbol (str, optional): Ticker symbol of the cryptocurrency.
-                Example: "BTC", "ETH". Defaults to None.
+            coin_name (str, optional): Full name of the cryptocurrency (e.g., "Bitcoin").
+            coin_symbol (str, optional): Ticker symbol of the cryptocurrency (e.g., "BTC").
 
         Returns:
-            dict: A dictionary containing cryptocurrency details with the following keys:
-                - success (bool): Whether the operation was successful
-                - message (str): Status message or error description
-                - data (dict, optional): Cryptocurrency information including:
-                    - name (str): Full name of the cryptocurrency
-                    - symbol (str): Ticker symbol
-                    - description (str): Detailed description
-                    - current_price_usd (float): Current price in USD
-                    - market_cap (float): Market capitalization in USD
-                    - volume (float): 24-hour trading volume in USD
-                    - market_cap_rank (int): Market cap ranking
-                    - fully_diluted_valuation (float): Fully diluted valuation
-                    - last_updated (str): Last update timestamp
+            dict: A dictionary containing cryptocurrency details with the following structure:
+                {
+                    "data": {
+                        "name": str,
+                        "symbol": str,
+                        "description": str,
+                        "current_price_usd": float,
+                        "market_cap": float,
+                        "volume": float,
+                        "market_cap_rank": int,
+                        "fully_diluted_valuation": float,
+                        "last_updated": str
+                    }
+                }
+                If error occurs: {"error": str}
 
-        Note:
-            If both coin_name and coin_symbol are provided, coin_name takes precedence.
-            All monetary values are returned in USD.
+        Example:
+            >>> crypto = CryptocurrencyInsights()
+            >>> result = crypto.coin_details(coin_symbol="BTC")
+            >>> print(result["data"]["current_price_usd"])  # Current Bitcoin price
         """
         if not coin_name and not coin_symbol:
-            return {
-                "message": "You must provide either 'coin_name' or 'coin_symbol'."
-            }
+            return {"error": "You must provide either 'coin_name' or 'coin_symbol'."}
 
         try:
-            # Step 1: Get coin list from crypto market data
+            # Get coin list from market data
             response = requests.get(f"{self.base_url}/coins/list")
-            response.raise_for_status()
             coins = response.json()
 
-            # Step 2: Find matching coin_id
+            # Find matching coin_id
             coin_id = None
             for coin in coins:
                 if coin_name and coin['name'].lower() == coin_name.lower():
@@ -359,383 +377,324 @@ class CryptocurrencyInsights:
                     break
 
             if not coin_id:
-                return {
-                    "message": "No coin found matching the provided name or symbol."
-                }
+                return {"error": "No coin found matching the provided name or symbol."}
 
-            # Step 3: Fetch coin details from crypto market data
+            # Fetch coin details
             coin_detail_url = f"{self.base_url}/coins/{coin_id}"
             detail_response = requests.get(coin_detail_url)
-            detail_response.raise_for_status()
             data = detail_response.json()
 
-            # Step 4: Filter required fields
+            # Filter required fields
             filtered_data = {
-                "name": data.get("name"),
-                "symbol": data.get("symbol"),
-                "description": data.get("description", {}).get("en", "").strip(),
-                "current_price_usd": data.get("market_data", {}).get("current_price", {}).get("usd"),
-                "market_cap": data.get("market_data", {}).get("market_cap", {}).get("usd"),
-                "volume": data.get("market_data", {}).get("total_volume", {}).get("usd"),
-                "market_cap_rank": data.get("market_cap_rank"),
-                "fully_diluted_valuation": data.get("market_data", {}).get("fully_diluted_valuation", {}).get("usd"),
-                "last_updated": data.get("last_updated")
+                "name": data.get("name", "N/A"),
+                "symbol": data.get("symbol", "N/A"),
+                "description": data.get("description", {}).get("en", "No description available").strip(),
+                "current_price_usd": data.get("market_data", {}).get("current_price", {}).get("usd", 0.0),
+                "market_cap": data.get("market_data", {}).get("market_cap", {}).get("usd", 0.0),
+                "volume": data.get("market_data", {}).get("total_volume", {}).get("usd", 0.0),
+                "market_cap_rank": data.get("market_cap_rank", 0),
+                "fully_diluted_valuation": data.get("market_data", {}).get("fully_diluted_valuation", {}).get("usd", 0.0),
+                "last_updated": data.get("last_updated", "N/A")
             }
 
-            return {
-                "data": filtered_data
-            }
+            return {"data": filtered_data}
 
-        except requests.RequestException as e:
-            return {
-                "message": f"Error while processing the request: {str(e)}"
-            }
-        
+        except requests.RequestException:
+            return {"error": "Unable to fetch cryptocurrency data. Please check your connection and try again."}
+        except Exception:
+            return {"error": "An unexpected error occurred while processing the cryptocurrency request."}
+
     def is_valid_symbol(self, coin_symbol: str) -> dict:
         """
-        Validate if a cryptocurrency symbol exists in crypto market data.
+        Validate if a cryptocurrency symbol exists in market data.
 
         Checks whether the provided cryptocurrency ticker symbol is valid
-        and available in the crypto market data sources.
+        and available in the cryptocurrency market data sources.
 
         Args:
             coin_symbol (str): The ticker symbol of the cryptocurrency to validate.
-                Example: "BTC", "ETH", "ADA".
 
         Returns:
-            dict: A dictionary containing validation results with the following keys:
-                - success (bool): Whether the validation was successful
-                - message (str): Status message or error description
-                - is_valid (bool, optional): True if symbol is valid, False otherwise
+            dict: A dictionary containing validation result with the following structure:
+                {"is_valid": bool} - True if symbol is valid, False otherwise
+                If error occurs: {"error": str}
 
         Example:
             >>> crypto = CryptocurrencyInsights()
             >>> result = crypto.is_valid_symbol("BTC")
-            >>> print(result["is_valid"])  # True
+            >>> print(result["is_valid"])  # True or False
         """
         try:
-            response = requests.get(f"{self.base_url}/coins/markets", params={"vs_currency": "usd", "symbols": coin_symbol})
-            response.raise_for_status()
+            response = requests.get(f"{self.base_url}/coins/markets", 
+                                  params={"vs_currency": "usd", "symbols": coin_symbol})
             data = response.json()
             
-            is_valid = len(data) > 0
-            return {
-                "is_valid": is_valid
-            }
+            return {"is_valid": len(data) > 0}
             
-        except requests.RequestException as e:
-            return {
-                "message": f"Failed to validate coin symbol: {str(e)}"
-            }
-    
+        except requests.RequestException:
+            return {"error": "Unable to validate coin symbol. Please check your connection and try again."}
+        except Exception:
+            return {"error": "An unexpected error occurred while validating the coin symbol."}
+
     def is_valid_name(self, coin_name: str) -> dict:
         """
-        Validate if a cryptocurrency name exists in crypto market data.
+        Validate if a cryptocurrency name exists in market data.
 
         Checks whether the provided cryptocurrency name is valid and available
-        in the crypto market data sources.
+        in the cryptocurrency market data sources.
 
         Args:
             coin_name (str): The full name of the cryptocurrency to validate.
-                Example: "Bitcoin", "Ethereum", "Cardano".
 
         Returns:
-            dict: A dictionary containing validation results with the following keys:
-                - success (bool): Whether the validation was successful
-                - message (str): Status message or error description
-                - is_valid (bool, optional): True if name is valid, False otherwise
+            dict: A dictionary containing validation result with the following structure:
+                {"is_valid": bool} - True if name is valid, False otherwise
+                If error occurs: {"error": str}
 
         Example:
             >>> crypto = CryptocurrencyInsights()
             >>> result = crypto.is_valid_name("Bitcoin")
-            >>> print(result["is_valid"])  # True
+            >>> print(result["is_valid"])  # True or False
         """
         try:
-            response = requests.get(f"{self.base_url}/coins/markets", params={"vs_currency": "usd", "ids": coin_name.lower()})
-            response.raise_for_status()
+            response = requests.get(f"{self.base_url}/coins/markets", 
+                                  params={"vs_currency": "usd", "ids": coin_name.lower()})
             data = response.json()
             
-            is_valid = len(data) > 0
-            return {
-                "is_valid": is_valid
-            }
+            return {"is_valid": len(data) > 0}
             
-        except requests.RequestException as e:
-            return {
-                "message": f"Failed to validate coin name: {str(e)}"
-            }
-        
+        except requests.RequestException:
+            return {"error": "Unable to validate coin name. Please check your connection and try again."}
+        except Exception:
+            return {"error": "An unexpected error occurred while validating the coin name."}
+
     def get_current_price(self, coin_name: str = None, coin_symbol: str = None) -> dict:
         """
         Retrieve the current price of a cryptocurrency in USD.
 
-        Fetches the real-time price of a cryptocurrency from crypto market data
+        Fetches the real-time price of a cryptocurrency from market data
         using either the coin name or symbol. The price is returned in USD.
 
         Args:
-            coin_name (str, optional): Full name of the cryptocurrency.
-                Example: "Bitcoin", "Ethereum". Defaults to None.
-            coin_symbol (str, optional): Ticker symbol of the cryptocurrency.
-                Example: "BTC", "ETH". Defaults to None.
+            coin_name (str, optional): Full name of the cryptocurrency (e.g., "Bitcoin").
+            coin_symbol (str, optional): Ticker symbol of the cryptocurrency (e.g., "BTC").
 
         Returns:
-            dict: A dictionary containing price information with the following keys:
-                - success (bool): Whether the operation was successful
-                - message (str): Status message or error description
-                - current_price_usd (float, optional): Current price in USD
-
-        Note:
-            Either coin_name or coin_symbol must be provided. If both are provided,
-            coin_name takes precedence.
+            dict: A dictionary containing price information with the following structure:
+                {"current_price_usd": float} - Current price in USD
+                If error occurs: {"error": str}
 
         Example:
             >>> crypto = CryptocurrencyInsights()
             >>> result = crypto.get_current_price(coin_symbol="BTC")
-            >>> if result["success"]:
-            ...     print(f"Bitcoin price: ${result['current_price_usd']:.2f}")
+            >>> print(f"Bitcoin price: ${result['current_price_usd']:.2f}")
         """
         if not coin_name and not coin_symbol:
-            return {
-                "message": "You must provide either 'coin_name' or 'coin_symbol'."
-            }
+            return {"error": "You must provide either 'coin_name' or 'coin_symbol'."}
 
         try:
             details = self.coin_details(coin_name, coin_symbol)
             
-            if not details["success"]:
-                return {
-                    "message": details["message"]
-                }
+            if "error" in details:
+                return {"error": details["error"]}
             
             current_price = details["data"].get("current_price_usd", 0.0)
-            
-            return {
-                "current_price_usd": current_price
-            }
+            return {"current_price_usd": current_price}
 
-        except Exception as e:
-            return {
-                "message": f"Error while fetching current price: {str(e)}"
-            }
+        except Exception:
+            return {"error": "An unexpected error occurred while fetching current price."}
 
     def __str__(self) -> str:
-        """
-        Return a string representation of the CryptocurrencyInsights instance.
+        return "CryptocurrencyInsights Class for Market Analysis"
 
-        Returns:
-            str: A descriptive string about the class functionality.
-        """
-        return "Cryptocurrency Insights Class for Market Analysis"
-    
     def __repr__(self) -> str:
-        """
-        Return a detailed string representation for debugging purposes.
-
-        Returns:
-            str: A string that can be used to recreate the object.
-        """
         return "CryptocurrencyInsights()"
-    
+
 
 class CurrencyConverter:
     """
-        A class to perform real-time currency conversion and exchange rate lookups using the ExchangeRate-API.
+    A class to perform real-time currency conversion and exchange rate operations.
 
-        This class provides functionality to convert currency amounts between different currencies, 
-        fetch exchange rates, and list supported currencies via RESTful API calls to the ExchangeRate-API.
+    This class provides functionality to convert currency amounts between different currencies, 
+    fetch exchange rates, and list supported currencies. It handles all currency-related
+    operations with robust error handling and comprehensive data validation.
 
-        Attributes
-        ----------
-        base_url : str
-            The base URL of the ExchangeRate-API endpoint.
-        api_key : str
-            The API key used for authenticating requests to the ExchangeRate-API.
+    Attributes:
+        base_url (str): The base URL endpoint for currency exchange operations.
 
-        Methods
-        -------
-        convert(from_currency: str, to_currency: str, amount: float) -> float:
-            Converts a specified amount from one currency to another.
-
-        exchange_rate(from_currency: str, to_currency: str) -> float:
-            Retrieves the current exchange rate between two given currencies.
-
-        supported_currencies() -> list:
-            Returns a list of supported currency codes and their full names.
-
-        exchange_rate_for_base_currency(base_currency: str) -> dict:
-            Retrieves all exchange rates from a given base currency to others.
-
-        __str__() -> str:
-            Returns a human-readable string representation of the CurrencyConverter instance.
-
-        __repr__() -> str:
-            Returns a developer-friendly representation of the CurrencyConverter instance.
+    Methods:
+        convert(from_currency, to_currency, amount): Converts amount between currencies.
+        exchange_rate(from_currency, to_currency): Retrieves exchange rate between currencies.
+        supported_currencies(): Returns list of supported currency codes.
+        exchange_rate_for_base_currency(base_currency): Gets all rates from base currency.
     """
-
 
     def __init__(self):
         """
-        Initializes the CurrencyConverter with the base API URL and API key.
+        Initialize the CurrencyConverter class.
+        
+        Sets up the base URL for currency exchange operations and prepares
+        the instance for making currency conversion requests.
         """
         self.base_url = "https://v6.exchangerate-api.com/v6/"
-        self.api_key = currency_api
 
-    def convert(self, from_currency: str, to_currency: str, amount: float) -> float:
+    def convert(self, from_currency: str, to_currency: str, amount: float) -> dict:
         """
-        Converts a specified amount from one currency to another.
+        Convert a specified amount from one currency to another.
+
+        Performs real-time currency conversion using current exchange rates
+        to convert the specified amount from source to target currency.
 
         Args:
             from_currency (str): The source currency code (e.g., "USD").
-            to_currency (str): The target currency code (e.g., "INR").
+            to_currency (str): The target currency code (e.g., "EUR").
             amount (float): The amount to convert.
 
         Returns:
-            float: The converted amount in the target currency.
+            dict: A dictionary containing conversion result with the following structure:
+                {"converted_amount": float} - The converted amount
+                If error occurs: {"error": str}
 
-        Raises:
-            ValueError: If the input types are invalid or API response is incorrect.
-            requests.RequestException: If the API request fails.
+        Example:
+            >>> converter = CurrencyConverter()
+            >>> result = converter.convert("USD", "EUR", 100)
+            >>> print(f"Converted amount: {result['converted_amount']:.2f}")
         """
         try:
             if not isinstance(from_currency, str) or not isinstance(to_currency, str):
-                raise ValueError("Currency codes must be strings.")
+                return {"error": "Currency codes must be strings."}
             if not isinstance(amount, (int, float)):
-                raise ValueError("Amount must be a number.")
+                return {"error": "Amount must be a number."}
 
-            url = f"{self.base_url}{self.api_key}/pair/{from_currency}/{to_currency}/{amount}"
+            url = f"{self.base_url}{currency_api}/pair/{from_currency}/{to_currency}/{amount}"
             response = requests.get(url)
-            response.raise_for_status()
-
             data = response.json()
-            if "conversion_rate" not in data:
-                raise ValueError("Invalid API response")
+            
+            if "conversion_result" not in data:
+                return {"error": "Invalid currency codes or service unavailable."}
 
-            return data["conversion_result"]
+            return {"converted_amount": data["conversion_result"]}
 
-        except ValueError as e:
-            return json.dumps({'error': str(e)}, indent=2)
-        except requests.RequestException as e:
-            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
-            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
-        except Exception as e:
-            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+        except requests.RequestException:
+            return {"error": "Unable to perform currency conversion. Please check your connection and try again."}
+        except Exception:
+            return {"error": "An unexpected error occurred during currency conversion."}
 
-    def exchange_rate(self, from_currency: str, to_currency: str) -> float:
+    def exchange_rate(self, from_currency: str, to_currency: str) -> dict:
         """
-        Retrieves the exchange rate between two currencies.
+        Retrieve the current exchange rate between two currencies.
+
+        Fetches the real-time exchange rate from the source currency to the
+        target currency for conversion calculations.
 
         Args:
-            from_currency (str): The base currency code.
-            to_currency (str): The target currency code.
+            from_currency (str): The base currency code (e.g., "USD").
+            to_currency (str): The target currency code (e.g., "EUR").
 
         Returns:
-            float: The current exchange rate from base to target currency.
+            dict: A dictionary containing exchange rate with the following structure:
+                {"exchange_rate": float} - Current exchange rate
+                If error occurs: {"error": str}
 
-        Raises:
-            ValueError: If the input types are invalid or API response is incorrect.
-            requests.RequestException: If the API request fails.
+        Example:
+            >>> converter = CurrencyConverter()
+            >>> result = converter.exchange_rate("USD", "EUR")
+            >>> print(f"Exchange rate: {result['exchange_rate']:.4f}")
         """
         try:
             if not isinstance(from_currency, str) or not isinstance(to_currency, str):
-                raise ValueError("Currency codes must be strings.")
+                return {"error": "Currency codes must be strings."}
 
-            url = f"{self.base_url}{self.api_key}/pair/{from_currency}/{to_currency}"
+            url = f"{self.base_url}{currency_api}/pair/{from_currency}/{to_currency}"
             response = requests.get(url)
-            response.raise_for_status()
-
             data = response.json()
+            
             if "conversion_rate" not in data:
-                raise ValueError("Invalid API response")
+                return {"error": "Invalid currency codes or service unavailable."}
 
-            return data["conversion_rate"]
+            return {"exchange_rate": data["conversion_rate"]}
 
-        except ValueError as e:
-            return json.dumps({'error': str(e)}, indent=2)
-        except requests.RequestException as e:
-            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
-            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
-        except Exception as e:
-            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+        except requests.RequestException:
+            return {"error": "Unable to fetch exchange rate. Please check your connection and try again."}
+        except Exception:
+            return {"error": "An unexpected error occurred while fetching exchange rate."}
 
-    def supported_currencies(self) -> list:
+    def supported_currencies(self) -> dict:
         """
-        Retrieves a list of all supported currency codes and their full names.
+        Retrieve a list of all supported currency codes and their descriptions.
+
+        Provides comprehensive list of all available currencies that can be
+        used for conversion operations along with their full names.
+
+        Args:
+            None
 
         Returns:
-            list: A list of dictionaries mapping currency codes to full names.
+            dict: A dictionary containing supported currencies with the following structure:
+                {"currencies": list} - List of currency dictionaries with code and name
+                If error occurs: {"error": str}
 
-        Raises:
-            requests.RequestException: If the API request fails.
+        Example:
+            >>> converter = CurrencyConverter()
+            >>> result = converter.supported_currencies()
+            >>> print(len(result["currencies"]))  # Number of supported currencies
         """
         try:
-            url = f"{self.base_url}{self.api_key}/codes"
+            url = f"{self.base_url}{currency_api}/codes"
             response = requests.get(url)
-            response.raise_for_status()
-
             data = response.json()
+            
             if "supported_codes" not in data:
-                raise ValueError("Invalid API response")
+                return {"error": "Unable to retrieve supported currencies."}
 
-            return [{code[0]: code[1]} for code in data["supported_codes"]]
+            currencies = [{"code": code[0], "name": code[1]} for code in data["supported_codes"]]
+            return {"currencies": currencies}
 
-        except requests.RequestException as e:
-            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
-            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
-        except Exception as e:
-            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+        except requests.RequestException:
+            return {"error": "Unable to fetch supported currencies. Please check your connection and try again."}
+        except Exception:
+            return {"error": "An unexpected error occurred while retrieving supported currencies."}
 
     def exchange_rate_for_base_currency(self, base_currency: str) -> dict:
         """
-        Retrieves exchange rates from a base currency to all other supported currencies.
+        Retrieve exchange rates from a base currency to all supported currencies.
+
+        Provides comprehensive exchange rate data from the specified base currency
+        to all other available currencies in a single response.
 
         Args:
             base_currency (str): The base currency code (e.g., "USD").
 
         Returns:
-            dict: A dictionary of currency codes mapped to exchange rates.
+            dict: A dictionary containing all exchange rates with the following structure:
+                {"rates": dict} - Dictionary of currency codes mapped to exchange rates
+                If error occurs: {"error": str}
 
-        Raises:
-            ValueError: If the base currency is not a string or API response is invalid.
-            requests.RequestException: If the API request fails.
+        Example:
+            >>> converter = CurrencyConverter()
+            >>> result = converter.exchange_rate_for_base_currency("USD")
+            >>> print(result["rates"]["EUR"])  # USD to EUR rate
         """
         try:
             if not isinstance(base_currency, str):
-                raise ValueError("Base currency must be a string.")
+                return {"error": "Base currency must be a string."}
 
-            url = f"{self.base_url}{self.api_key}/latest/{base_currency}"
+            url = f"{self.base_url}{currency_api}/latest/{base_currency}"
             response = requests.get(url)
-            response.raise_for_status()
-
             data = response.json()
+            
             if "conversion_rates" not in data:
-                raise ValueError("Invalid API response")
+                return {"error": "Invalid base currency or service unavailable."}
 
-            return data["conversion_rates"]
+            return {"rates": data["conversion_rates"]}
 
-        except ValueError as e:
-            return json.dumps({'error': str(e)}, indent=2)
-        except requests.RequestException as e:
-            sanitized_msg = str(e).replace(self.api_key, "[API_KEY]")
-            return json.dumps({'error': f'API request failed: {sanitized_msg}'}, indent=2)
-        except Exception as e:
-            return json.dumps({'error': f'An unexpected error occurred: {str(e)}'}, indent=2)
+        except requests.RequestException:
+            return {"error": "Unable to fetch exchange rates. Please check your connection and try again."}
+        except Exception:
+            return {"error": "An unexpected error occurred while retrieving exchange rates."}
 
     def __str__(self):
-        """
-        Returns a human-readable string representation of the CurrencyConverter class.
-
-        Returns:
-            str: Description of the class.
-        """
         return "CurrencyConverter Class for Currency Exchange"
 
     def __repr__(self):
-        """
-        Returns an unambiguous string representation of the CurrencyConverter object.
-
-        Returns:
-            str: Developer-friendly representation.
-        """
         return "CurrencyConverter()"
-
-
