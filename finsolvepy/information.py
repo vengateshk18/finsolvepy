@@ -1,6 +1,6 @@
 # In finsolvepy/information.py
 import pandas as pd
-from finsolvepy.database.company_symbol_dict import company_dict  # Update this line
+from finsolvepy.database.company_symbol_dict import company_dict 
 from finsolvepy.database.apis import DATA_APIS
 import json
 import requests
@@ -85,7 +85,7 @@ class StockInsights:
                 stock = self.stock.loc[self.stock['symbol'] == symbol]
                 
                 if stock.empty:
-                    return {"error": f"No information available for the stock symbol '{symbol}'."}
+                    return json.dumps({"error": f"No information available for the stock symbol '{symbol}'."}, indent=2)
 
                 stock_info = {
                     'symbol': stock['symbol'].values[0],
@@ -100,14 +100,14 @@ class StockInsights:
                     'roe': stock['roe'].values[0] if not pd.isna(stock['roe'].values[0]) else "N/A",
                     'face_value': stock['face_value'].values[0] if not pd.isna(stock['face_value'].values[0]) else "N/A",
                 }
-                return json.loads(json.dumps(stock_info, indent=4))
+                return json.dumps(stock_info, indent=2)
             
             # Check external data source if not found locally
             try:
                 us_response = requests.get(f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={market_api}")
                 
                 if us_response.text == "{}":
-                    return {"error": f"Information for '{symbol}' is not available or the symbol is invalid."}
+                    return json.dumps({"error": f"Information for '{symbol}' is not available or the symbol is invalid."}, indent=2)
                 
                 stock = us_response.json()
                 
@@ -137,15 +137,15 @@ class StockInsights:
                     'roe': stock.get('ReturnOnEquityTTM', 'N/A'),
                     'face_value': None
                 }
-                return data
+                return json.dumps(data, indent=2)
                 
             except requests.RequestException:
-                return {"error": f"Unable to fetch data for symbol '{symbol}'. Please check the symbol and try again."}
+                return json.dumps({"error": f"Unable to fetch data for symbol '{symbol}'. Please check the symbol and try again."}, indent=2)
             except Exception:
-                return {"error": f"An unexpected error occurred while processing '{symbol}'."}
+                return json.dumps({"error": f"An unexpected error occurred while processing '{symbol}'."}, indent=2)
 
         except Exception:
-            return {"error": f"An unexpected error occurred while processing '{symbol}'."}
+            return json.dumps({"error": f"An unexpected error occurred while processing '{symbol}'."}, indent=2)
 
     def index_lists(self) -> dict:
         """
@@ -169,13 +169,13 @@ class StockInsights:
         """
         try:
             if 'Index' not in self.index.columns:
-                return {"error": "'Index' column not found in the database."}
+                return json.dumps({"error": "'Index' column not found in the database."}, indent=2)
 
             index_list = self.index['Index'].values.tolist()
-            return {"Index": index_list}
+            return json.dumps({"Index": index_list}, indent=2)
 
         except Exception:
-            return {"error": "An unexpected error occurred while retrieving index list."}
+            return json.dumps({"error": "An unexpected error occurred while retrieving index list."}, indent=2)
 
     def index_description(self, index: str) -> dict:
         """
@@ -203,10 +203,10 @@ class StockInsights:
         """
         try:
             if not isinstance(index, str):
-                return {"error": "The index parameter must be a string."}
+                return json.dumps({"error": "The index parameter must be a string."}, indent=2)
 
             if index not in self.index['Index'].values:
-                return {"error": f"Information for '{index}' is not available or the index is invalid."}
+                return json.dumps({"error": f"Information for '{index}' is not available or the index is invalid."}, indent=2)
 
             info = self.index[self.index['Index'] == index]
 
@@ -215,10 +215,10 @@ class StockInsights:
                 "Region": info['Exchange'].values[0],
                 "Description": info['Description'].values[0]
             }
-            return data
+            return json.dumps(data, indent=2)
 
         except Exception:
-            return {"error": f"An unexpected error occurred while processing '{index}'."}
+            return json.dumps({"error": f"An unexpected error occurred while processing '{index}'."}, indent=2)
 
     def is_valid_symbol(self, symbol: str) -> dict:
         """
@@ -242,21 +242,21 @@ class StockInsights:
         """
         try:
             if not isinstance(symbol, str):
-                return {"error": "The provided symbol must be a string."}
+                return json.dumps({"error": "The provided symbol must be a string."}, indent=2)
 
             # Check local database first
             if symbol in self.stock['symbol'].values:
-                return {"is_valid": True}
+                return json.dumps({"is_valid": True}, indent=2)
 
             # Check external data source
             try:
                 response = requests.get(f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={market_api}')
-                return {"is_valid": response.text != "{}"}
+                return json.dumps({"is_valid": response.text != "{}"}, indent=2)
             except requests.RequestException:
-                return {"is_valid": False}
+                return json.dumps({"is_valid": False}, indent=2)
 
         except Exception:
-            return {"error": f"An unexpected error occurred while validating '{symbol}'."}
+            return json.dumps({"error": f"An unexpected error occurred while validating '{symbol}'."}, indent=2)
 
     def is_valid_index(self, index: str) -> dict:
         """
@@ -280,15 +280,15 @@ class StockInsights:
         """
         try:
             if not isinstance(index, str):
-                return {"error": "The provided index must be a string."}
+                return json.dumps({"error": "The provided index must be a string."}, indent=2)
 
             if 'Index' not in self.index.columns:
-                return {"error": "'Index' column not found in the database."}
+                return json.dumps({"error": "'Index' column not found in the database."}, indent=2)
 
-            return {"is_valid": index in self.index['Index'].values}
+            return json.dumps({"is_valid": index in self.index['Index'].values}, indent=2)
 
         except Exception:
-            return {"error": f"An unexpected error occurred while validating '{index}'."}
+            return json.dumps({"error": f"An unexpected error occurred while validating '{index}'."}, indent=2)
 
     def __str__(self):
         return "StockInsights Class for Market Analysis"
@@ -359,7 +359,7 @@ class CryptocurrencyInsights:
             >>> print(result["data"]["current_price_usd"])  # Current Bitcoin price
         """
         if not coin_name and not coin_symbol:
-            return {"error": "You must provide either 'coin_name' or 'coin_symbol'."}
+            return json.dumps({"error": "You must provide either 'coin_name' or 'coin_symbol'."}, indent=2)
 
         try:
             # Get coin list from market data
@@ -377,7 +377,7 @@ class CryptocurrencyInsights:
                     break
 
             if not coin_id:
-                return {"error": "No coin found matching the provided name or symbol."}
+                return json.dumps({"error": "No coin found matching the provided name or symbol."}, indent=2)
 
             # Fetch coin details
             coin_detail_url = f"{self.base_url}/coins/{coin_id}"
@@ -397,12 +397,12 @@ class CryptocurrencyInsights:
                 "last_updated": data.get("last_updated", "N/A")
             }
 
-            return {"data": filtered_data}
+            return json.dumps({"data": filtered_data}, indent=2)
 
         except requests.RequestException:
-            return {"error": "Unable to fetch cryptocurrency data. Please check your connection and try again."}
+            return json.dumps({"error": "Unable to fetch cryptocurrency data. Please check your connection and try again."}, indent=2)
         except Exception:
-            return {"error": "An unexpected error occurred while processing the cryptocurrency request."}
+            return json.dumps({"error": "An unexpected error occurred while processing the cryptocurrency request."}, indent=2)
 
     def is_valid_symbol(self, coin_symbol: str) -> dict:
         """
@@ -429,12 +429,12 @@ class CryptocurrencyInsights:
                                   params={"vs_currency": "usd", "symbols": coin_symbol})
             data = response.json()
             
-            return {"is_valid": len(data) > 0}
+            return json.dumps({"is_valid": len(data) > 0}, indent=2)
             
         except requests.RequestException:
-            return {"error": "Unable to validate coin symbol. Please check your connection and try again."}
+            return json.dumps({"error": "Unable to validate coin symbol. Please check your connection and try again."}, indent=2)
         except Exception:
-            return {"error": "An unexpected error occurred while validating the coin symbol."}
+            return json.dumps({"error": "An unexpected error occurred while validating the coin symbol."}, indent=2)
 
     def is_valid_name(self, coin_name: str) -> dict:
         """
@@ -461,12 +461,12 @@ class CryptocurrencyInsights:
                                   params={"vs_currency": "usd", "ids": coin_name.lower()})
             data = response.json()
             
-            return {"is_valid": len(data) > 0}
+            return json.dumps({"is_valid": len(data) > 0}, indent=2)
             
         except requests.RequestException:
-            return {"error": "Unable to validate coin name. Please check your connection and try again."}
+            return json.dumps({"error": "Unable to validate coin name. Please check your connection and try again."}, indent=2)
         except Exception:
-            return {"error": "An unexpected error occurred while validating the coin name."}
+            return json.dumps({"error": "An unexpected error occurred while validating the coin name."}, indent=2)
 
     def get_current_price(self, coin_name: str = None, coin_symbol: str = None) -> dict:
         """
@@ -490,19 +490,19 @@ class CryptocurrencyInsights:
             >>> print(f"Bitcoin price: ${result['current_price_usd']:.2f}")
         """
         if not coin_name and not coin_symbol:
-            return {"error": "You must provide either 'coin_name' or 'coin_symbol'."}
+            return json.dumps({"error": "You must provide either 'coin_name' or 'coin_symbol'."}, indent=2)
 
         try:
             details = self.coin_details(coin_name, coin_symbol)
             
             if "error" in details:
-                return {"error": details["error"]}
+                return json.dumps({"error": details["error"]}, indent=2)
             
             current_price = details["data"].get("current_price_usd", 0.0)
-            return {"current_price_usd": current_price}
+            return json.dumps({"current_price_usd": current_price}, indent=2)
 
         except Exception:
-            return {"error": "An unexpected error occurred while fetching current price."}
+            return json.dumps({"error": "An unexpected error occurred while fetching current price."}, indent=2)
 
     def __str__(self) -> str:
         return "CryptocurrencyInsights Class for Market Analysis"

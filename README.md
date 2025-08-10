@@ -1,30 +1,42 @@
 # finsolvepy
 
-`finsolvepy` is a comprehensive Python package designed for financial enthusiasts and professionals. It provides insightful tools for obtaining detailed information about stocks and market indices. By leveraging data from CSV files and Market Data, this package allows users to fetch stock details, validate stock symbols, and retrieve descriptions for various market indices effortlessly.
+**`finsolvepy`** is a versatile Python package for financial enthusiasts and professionals, offering powerful tools to access and analyze **stock market**, **cryptocurrency**, and **currency exchange** data.  
+Whether you are a retail investor, analyst, or developer, `finsolvepy` provides an easy-to-use API to fetch, validate, and calculate financial metrics.
 
-## Features
+---
 
-- **Fetch Detailed Stock Information**: Easily retrieve comprehensive data for specified stock symbols, including market cap, current market price, and company descriptions.
-  
-- **Validate Stock Symbols**: Check the validity of stock symbols in market data to ensure accurate information retrieval.
+## 📌 Features
 
-- **Retrieve Index Descriptions**: Get detailed descriptions for a variety of market indices, enhancing your understanding of different markets.
+### **Stocks & Indices**
+- **Detailed Stock Information** – Get market cap, price, company description, ROE, ROCE, and more.
+- **Validate Stock Symbols** – Ensure ticker symbols are correct before querying.
+- **Market Index Data** – Retrieve descriptions and lists of Indian and US indices.
 
-- **List Indices**: Access a list of all indices available in the Indian and US markets, providing a broader context for financial analysis.
+### **Cryptocurrencies**
+- **Detailed Coin Information** – Access market cap, price, description, rankings, and more.
+- **Validate Crypto Symbols** – Quickly check if a cryptocurrency ticker is valid.
 
-## Installation
+### **Currency Conversion**
+- **Currency Converter** – Convert amounts between any two currencies in real time.
+- **Exchange Rates** – Fetch the current exchange rate between two currencies.
 
-Before using the package, you need to install it. You can do this via pip:
+### **Financial Calculations**
+- **Price-to-Earnings (P/E) Ratio**
+- **Years to Double Investment**
+
+---
+
+## 📦 Installation
 
 ```bash
 pip install finsolvepy
-```
+````
 
-## Example Usage
+---
 
-### Get Details About a Specific Stock
+## 💡 Usage Examples
 
-To retrieve information about a specific stock, such as Apple Inc. (AAPL), you can use the following code:
+### 1️⃣ Get Detailed Stock Information
 
 ```python
 from finsolvepy.information import StockInsights
@@ -34,84 +46,170 @@ apple_details = obj.stock_detail('AAPL')
 print(apple_details)
 ```
 
-### Expected Output
+**Example Output:**
 
 ```json
 {
   "symbol": "AAPL",
   "company": "Apple Inc",
   "market_cap": "3456956105000 USD",
-  "about": "Apple Inc. is an American multinational technology company that specializes in consumer electronics, computer software, and online services. Apple is the world's largest technology company by revenue (totalling $274.5 billion in 2020) and, since January 2021, the world's most valuable company. As of 2021, Apple is the world's fourth-largest PC vendor by unit sales, and fourth-largest smartphone manufacturer. It is one of the Big Five American information technology companies, along with Amazon, Google, Microsoft, and Facebook.",
+  "about": "Apple Inc. is an American multinational technology company...",
   "curr_market_price": "$227.3877",
   "book_value": "51.83",
   "dividend": "0.0044",
   "roce": 3.812053060477029,
   "roe": "1.606",
-  "face_value": null
+  "face_value": 10
 }
 ```
 
-### Check if a Stock Symbol is Valid
+---
 
-To verify the validity of a stock symbol, such as TATAMOTORS, you can run:
+### 2️⃣ Validate Stock Symbol
 
 ```python
 from finsolvepy.information import StockInsights
 
 obj = StockInsights()
-tatamotors_symbol = obj.is_valid_symbol('TATAMOTORS')
-print(tatamotors_symbol)
+print(obj.is_valid_symbol('TATAMOTORS'))
 ```
 
-### Expected Output
+**Output:**
 
 ```bash
 True
 ```
 
-### Calculate the P/E Ratio of a Company
+---
 
-To find the Price-to-Earnings (P/E) ratio for a company, you can use the `Metrics` class:
+### 3️⃣ Calculate Price-to-Earnings (P/E) Ratio
 
 ```python
 from finsolvepy.calculation import Metrics
 
 obj = Metrics()
-hdfc_bank_pe = obj.pe_ratio(earnings=227270000000, no_of_shares=2534202430, current_market_price=1779)
-print(hdfc_bank_pe)
+pe = obj.pe_ratio(earnings=227270000000, no_of_shares=2534202430, current_market_price=1779)
+print(pe)
 ```
 
-### Expected Output
+**Output:**
 
 ```bash
 19.836960984599816
 ```
 
-### Determine the Number of Years to Double Your Money
+---
 
-You can also calculate how many years it will take to double your investment based on a given interest rate:
+### 4️⃣ Calculate Years to Double Your Money
 
 ```python
 from finsolvepy.calculation import Metrics
 
 obj = Metrics()
-fd_interest = obj.years_to_double_money(interest=7.5)
-print(fd_interest)
+years = obj.years_to_double_money(interest=7.5)
+print(years)
 ```
 
-### Expected Output 
+**Output:**
 
 ```bash
 9.6 years
 ```
 
-## Conclusion
+---
 
-With a wide array of methods and functionalities, the `finsolvepy` package is your go-to solution for financial data analysis. Whether you're a seasoned investor or just getting started, this package will enhance your financial decision-making process. Enjoy exploring the features!
+### 5️⃣ Get Cryptocurrency Details
 
+```python
+from finsolvepy.information import CryptocurrencyInsights
 
-## Credits
+crypto = CryptocurrencyInsights()
+btc_details = crypto.coin_details("Bitcoin")
+print(btc_details)
+```
 
-By **Vengatesh K**  
-[GitHub](https://github.com/vengateshk18)  
-Feel free to fork the repository and make changes!
+**Example Output:**
+
+```json
+{
+  "data": {
+    "name": "Bitcoin",
+    "symbol": "btc",
+    "description": "Bitcoin is the first successful internet money...",
+    "current_price_usd": 118745,
+    "market_cap": 2363422930356,
+    "volume": 34429259271,
+    "market_cap_rank": 1,
+    "fully_diluted_valuation": 2363422930356,
+    "last_updated": "2025-08-10T14:58:20.713Z"
+  }
+}
+```
+
+---
+
+### 6️⃣ Validate Cryptocurrency Symbol
+
+```python
+from finsolvepy.information import CryptocurrencyInsights
+
+crypto = CryptocurrencyInsights()
+print(crypto.is_valid_symbol("BTC"))
+```
+
+**Output:**
+
+```bash
+True
+```
+
+---
+
+### 7️⃣ Convert Currency
+
+```python
+from finsolvepy.information import CurrencyConverter
+
+cc = CurrencyConverter()
+converted_amount = cc.convert(from_currency="INR", to_currency="USD", amount=100)
+print(converted_amount)
+```
+
+**Output:**
+
+```bash
+$1.141
+```
+
+---
+
+### 8️⃣ Get Currency Exchange Rate
+
+```python
+from finsolvepy.information import CurrencyConverter
+
+cc = CurrencyConverter()
+rate = cc.exchange_rate(from_currency="USD", to_currency="INR")
+print(rate)
+```
+
+**Output:**
+
+```bash
+87.6119
+```
+
+---
+
+## 🏁 Conclusion
+
+With a wide range of features — from stock market insights to cryptocurrency analysis and currency conversion — `finsolvepy` is your go-to toolkit for financial data.
+Whether you're an experienced trader or just starting your investment journey, `finsolvepy` empowers you to make informed financial decisions.
+
+---
+
+## 👨‍💻 Author
+
+**Vengatesh K**
+[GitHub](https://github.com/vengateshk18)
+Feel free to fork the repository and contribute!

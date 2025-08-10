@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='finsolvepy',
     version='2.9.0',
-    description='finsolvepy is a Python package for financial analysis, allowing users to fetch stock details, validate symbols, and perform calculations like P/E ratio effortlessly',
+    description='finsolvepy is a Python package for comprehensive financial analysis, enabling users to access detailed stock and cryptocurrency data, validate market symbols, convert currencies, and perform key financial calculations with ease.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Vengatesh K',
